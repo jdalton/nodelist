@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>NodeList Benchmark Suite</title>
+<style type="text/css">
+  html  { background-color: #fffefb; }
+  body  { margin: 10px; padding: 10px; color: #000; font-family: sans-serif; }
+  h1, p { width: 500px; }
+  a     { color: #000; }
+
+  #jslitmus_container { background-color: #FFF; width: 500px; }
+</style>
+<script type="text/javascript">
+  var Tests = {
+    '_runResigRun': true
+  };
+
+  window.onerror = function() {
+    Tests._runResigRun = false;
+    return true;
+  };
+
+  window.onload = function() {
+    var reversed, array = [], detached = [], doc = document,
+     collection = doc.getElementsByTagName('*'),
+     nodelist   = doc.body.childNodes,
+     staticlist = typeof doc.querySelectorAll != 'undefined' && doc.querySelectorAll('*');
+
+    (function() {
+      var i = -1, length = collection;
+      while (++i < length) array[i] = collection[i];
+      reversed = array.reverse();
+
+      i = -1;
+      while (++i < length) {
+        detached[i] = i % 2 ? doc.createElement('div') : doc.createTextNode('x');
+      }
+    })();
+
+    /*------------------------------------------------------------------------*/
+
+    Tests['create_collection'] = function() {
+      JSLitmus.test('Unoffical: create_collection', function(count) {
+        while (count--) doc.createNodeList(collection);
+      });
+
+      if (Tests._runResigRun) {
+        JSLitmus.test('Offical: create_collection', function(count) {
+          while (count--) doc.createNodeList2(collection);
+        });
+      }
+    };
+
+    Tests['create_nodelist'] = function() {
+      JSLitmus.test('Unoffical: create_nodelist', function(count) {
+        while (count--) doc.createNodeList(nodelist);
+      });
+
+      if (Tests._runResigRun) {
+        JSLitmus.test('Offical: create_nodelist', function(count) {
+          while (count--) doc.createNodeList2(nodelist);
+        });
+      }
+    };
+
+    Tests['create_staticlist'] = function() {
+      if (!staticlist) return;
+
+      JSLitmus.test('Unoffical: create_staticlist', function(count) {
+        while (count--) doc.createNodeList(staticlist);
+      });
+
+      if (Tests._runResigRun) {
+        JSLitmus.test('Offical: create_staticlist', function(count) {
+          while (count--) doc.createNodeList2(staticlist);
+        });
+      }
+    };
+
+    Tests['create_array'] = function() {
+      JSLitmus.test('Unoffical: create_array', function(count) {
+        while (count--) doc.createNodeList(array);
+      });
+
+      if (Tests._runResigRun) {
+        JSLitmus.test('Offical: create_array', function(count) {
+          while (count--) doc.createNodeList2(array);
+        });
+      }
+    };
+
+    Tests['create_reversed'] = function() {
+      JSLitmus.test('Unoffical: create_reversed', function(count) {
+        while (count--) doc.createNodeList(reversed);
+      });
+
+      if (Tests._runResigRun) {
+        JSLitmus.test('Offical: create_reversed', function(count) {
+          while (count--) doc.createNodeList2(reversed);
+        });
+      }
+    };
+
+    Tests['create_detached'] = function() {
+      JSLitmus.test('Unoffical: create_detached', function(count) {
+        while (count--) doc.createNodeList(detached);
+      });
+
+      if (Tests._runResigRun) {
+        JSLitmus.test('Offical: create_detached', function(count) {
+          while (count--) doc.createNodeList2(detached);
+        });
+      }
+    };
+
+    /*------------------------------------------------------------------------*/
+
+    function getSelectValue() {
+      var select = document.getElementById('test_list');
+      return select.options[select.selectedIndex].value;
+    }
+
+    function getCheckValue() {
+      return document.getElementById('all_check').checked ? 1 : 0;
+    }
+
+    function replaceURL() {
+      location.replace(location.href.split('?')[0] + '?t=' +
+        getSelectValue() + '&a=' + getCheckValue());
+    }
+
+    var all = (location.search.match(/a=([^&]+)/) || [])[1] || '0',
+     test = (location.search.match(/t=([^&]+)/) || [])[1] || 'create_collection';
+
+    // setup selectbox
+    (function() {
+      // choose default selected option
+      var i = -1, length = this.options.length;
+      while (++i < length) {
+        if (this.options[i].value === test) {
+          this.selectedIndex = i;
+          break;
+        }
+      }
+      // attach event handler
+      this.onchange = replaceURL;
+    }).call(document.getElementById('test_list'));
+
+    // setup checkbox
+    (function() {
+      this.checked = all == 1;
+      this.onchange = replaceURL;
+    }).call(document.getElementById('all_check'));
+
+    // setup jslitmus
+    if (all == true) {
+      for (test in Tests) {
+        if (test.charAt(0) !== '_')
+          Tests[test]();
+      }
+    } else if (test.charAt(0) !== '_') {
+      Tests[test]();
+    }
+  };
+</script>
+<script type="text/javascript" src="http://github.com/jeresig/nodelist/raw/master/nodelist.js"></script>
+<script type="text/javascript">
+  // force runResigRun flag to be set
+  document.createNodeList();
+  document.createNodeList2 = document.createNodeList;
+  document.createNodeList  = null;
+</script>
+<script type="text/javascript" src="../nodelist.min.js"></script>
+<script type="text/javascript" src="jslitmus.js"></script>
+</head>
+<body>
+<h1><a href="http://github.com/jdalton/nodelist">NodeList</a> Benchmark Suite</h1>
+Benchmark <select id="test_list">
+  <optgroup label="createNodeList">
+    <option value="create_collection">HTMLCollection</option>
+    <option value="create_nodelist">NodeList</option>
+    <option value="create_staticlist">StaticNodeList</option>
+    <option value="create_array">Array</option>
+    <option value="create_reversed">Reversed</option>
+    <option value="create_detached">Detached</option>
+  </optgroup>
+</select>
+<label><input type="checkbox" id="all_check"> Perform all benchmarks.</label>
+<br><br>
+<div id="jslitmus_container"></div>
+</body>
+</html>
