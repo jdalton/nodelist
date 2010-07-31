@@ -16,17 +16,17 @@ However, I have a few concerns / issues with Resig's current proposal.
     by index to a NodeList decorator.
 
     Additionally, if the NodeList decorator had an internal `[[Class]]` of `Array`
-    it would virtually illuminate the need for `toArray()` and allow the decorator
+    it would virtually eliminate the need for `toArray()` and allow the decorator
     to masquerade as an array enabling its use in popular JavaScript frameworks and
     methods like Function#apply.
 
- 3. The NodeList decorator should **not** use callbacks for special `add` and `remove`
-    events. Instead it should use `addEventListener` and friends to add listeners
-    for a new `add` and `remove` event type.
+ 3. The NodeList decorator should **not** use callback methods `added()` or `removed()`.
+    Instead it should use `addEventListener` and friends to add listeners for a new `add`
+    and `remove` event type.
 
- 4. What is the practical use for the `secure()` method? It seems like
-    a ton of work to implement and easy enough for a developer to bypass by
-    simply querying the document again to gain access to the elements they want.
+ 4. What's the real world use for a `secure()` method? It seems like a lot of work to
+    implement and easy for a developer to bypass by simply querying the document again
+    to access the elements they want.
 
  5. The `requery()` method seems overly complex and restrictive. If a developer
     needs a fresh NodeList decorator they can simply pass another DOM List
@@ -59,17 +59,19 @@ Keep in mind that doing so **will** break the link between the original DOM List
 *(I have not added getter/setter checks for length property changes)*
 
 ### Secure
-The secured NodeList decorator is **not** accessible through an exposed property.
+The secured NodeList decorator is **not** exposed on an external property.
 
 ### ES5 Compliant
 Array methods on the NodeList decorator follow the ES5 specification.
-This means `concat()` allows more than one argument, `forEach()` does **not** return an object reference,
-and `filter()` throws a `TypeError` if the callback argument is not a function.
+This means `concat()` allows more than one argument, `forEach()` does **not**
+return an object reference, `filter()` throws a `TypeError` if callback is not a function,
+and objects passed to `document.createNodeList()` aren't required to have a `length` property.
 
 ### Future Proofing
-DOM object prototype extensions are hard to maintain and would surely fail in future browser releases.
-For more information on why extending DOM object prototypes in JavaScript is *verboten* please read
-Kangax's post "[What's wrong with extending the DOM][2]".
+The implementation does **not** extend DOM object prototypes because they are too hard to maintain 
+and would most likely cause problems for future browser releases. For more information on why 
+extending DOM object prototypes is *verboten* please read Kangax's post 
+"[What's wrong with extending the DOM][2]".
 
 ### Tests and Benchmarks
 Revised unit tests may be found [here][3] and benchmarks may be found [here][4].
