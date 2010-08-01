@@ -1,3 +1,5 @@
+* Add private unlink() method to help free memory. [jddalton]
+
 * Make requery() detect if a NodeList decorator, created from a DOM List, has been modified and break its link to the DOM List. [jddalton]
 
 * Remove checks for duplicate nodes from push() and unshift() because at that point the NodeList is not requeryable. [jddalton]

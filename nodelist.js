@@ -76,11 +76,10 @@
 
   adoptNodeList = function(parentList, child, data) {
     var pdata = parentList._(uid, 'data');
-    child._ || add_(child, data);
-
-    if (!pdata.snapshot) {
-      data.snapshot = false;
+    if (!(data.requeryable = pdata.requeryable)) {
+      unlink(data);
     }
+    child._ || add_(child, data);
     if (pdata.self != parentList) {
       child = child.secure();
     }
@@ -317,6 +316,15 @@
     return sort(group);
   },
 
+  unlink = function(data) {
+    // free memory and prevent requery() from referencing the origin DOM List
+    // when creating a new InternalNodeList
+    delete data.callerArgs;
+    delete data.callerName;
+    delete data.requeryable;
+    delete data.snapshot;
+  },
+
   HAS_ACTIVEX = !!(function() {
     try { return new ActiveXObject('htmlfile') } catch (e) { }
   })(),
@@ -450,16 +458,16 @@
       // If it fails to match we know it's been modified.
       if (snapshot) {
         if (snapshot.length != length) {
-          data.snapshot = false;
+          unlink(data);
         } else {
           while (length--) {
             if (this[length] != snapshot[length]) {
-              data.snapshot = false; break;
+              unlink(data); break;
             }
           }
         }
       }
-      return data.snapshot
+      return data.requeryable
         ? this[data.callerName].apply(parentList && parentList.requery() || this, data.callerArgs || [])
         : this.slice(0);
     };
@@ -494,8 +502,10 @@
       if (data.self != this) {
         throw new Error(MUTABLE_ERROR);
       }
-      data.snapshot = false;
-      return createCompliantList(null, 
+      if (data.requeryable) {
+        unlink(data);
+      }
+      return createCompliantList(null,
         nodes = __splice.apply(data.self, filterNonNodes(arguments, 2)),
         { 'callerName': 'createNodeList', 'callerArgs': [nodes] }, true);
     };
@@ -535,7 +545,9 @@
         if (data.self != this) {
           throw new Error(MUTABLE_ERROR);
         }
-        data.snapshot = false;
+        if (data.requeryable) {
+          unlink(data);
+        }
         return __method.apply(this, filterNonNodes(arguments));
       };
     });
@@ -544,8 +556,12 @@
       var __method = plugin[method];
       return function() {
         var data = this._(uid, 'data');
-        if (data.self != this) throw new Error(MUTABLE_ERROR);
-        data.snapshot = false;
+        if (data.self != this) {
+          throw new Error(MUTABLE_ERROR);
+        }
+        if (data.requeryable) {
+          unlink(data);
+        }
         return __method.call(this);
       };
     });
@@ -610,7 +626,7 @@
   },
 
   createCompliantList = function(parentList, nodes, data, skipOrdering) {
-    var docIndex, index, length, sorted, temp, result = InternalNodeList(),
+    var docIndex, index, length, result = InternalNodeList(),
      groups = [], roots = [], i = -1, j = i, k = i;
 
     // setup data object
@@ -622,9 +638,11 @@
       while (result[++i] = roots[i] = nodes[i]) { }
       result.length = --roots.length;
       data.snapshot = roots;
+      data.requeryable = true;
     }
     else if (nodes) {
-      if (nodes.constructor == InternalNodeList) {
+      if (nodes.constructor == InternalNodeList && nodes._) {
+        data.requeryable = nodes._(uid, 'requeryable');
         nodes = nodes.toArray();
       }
 
@@ -660,6 +678,9 @@
       result = adoptNodeList(parentList, result, data);
     } else {
       add_(result, data);
+      if (!data.requeryable) {
+        unlink(data);
+      }
       result.parentNodeList = null;
     }
     return result;
