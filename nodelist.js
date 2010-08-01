@@ -606,7 +606,7 @@
       data.requeryable = true;
     }
     else if (nodes) {
-      if (nodes.constructor == InternalNodeList) {
+      if (nodes.constructor == InternalNodeList && nodes._) {
         temp = nodes._(uid, 'data');
         data.requeryable = temp.requeryable;
         nodes = temp.self.toArray();
