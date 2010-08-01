@@ -1,12 +1,12 @@
 /*  "Unofficial" NodeList API Implementation
  *  (c) 2010 John-David Dalton <john@fusejs.com>
- *  John Resig's site: http://nodelist.org/
+ *  http://github.com/jdalton/nodelist
  *
  *  Fuse JavaScript framework, version Alpha
  *  (c) 2008-2010 John-David Dalton
  *  http://www.fusejs.com/
  *
- *  Both "Unofficial" NodeList and FuseJS are released under the MIT license.
+ *  "Unofficial" NodeList and FuseJS are released under the MIT license.
  */
 (function(window, undefined) {
 
