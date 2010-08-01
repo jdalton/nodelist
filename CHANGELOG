@@ -1,0 +1,3 @@
+* Avoid exposing the `data` argument in the external createNodeList() method. [jddalton]
+
+* Rename internal data.mutable to data.requeryable. [jddalton]

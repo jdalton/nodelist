@@ -48,7 +48,7 @@
     data.data = data;
     data.self = self;
 
-    return function(passcode, key, value) {
+    self._ = function(passcode, key, value) {
       var result = null;
       if (passcode === uid) {
         result = data.self;
@@ -76,9 +76,9 @@
 
   adoptNodeList = function(parentList, child, data) {
     var pdata = parentList._(uid, 'data');
-    data.mutable = pdata.mutable;
+    data.requeryable = pdata.requeryable;
 
-    child._ || (child._ = add_(child, data));
+    child._ || add_(child, data);
     if (pdata.self != parentList) {
       child = child.secure();
     }
@@ -425,7 +425,7 @@
           args[i] = __slice.call(args[i], 0);
         }
       }
-      return createNodeList.call(this, __concat.apply(this._(uid), args),
+      return createCompliantList(this, __concat.apply(this._(uid), args),
         { 'callerName': 'concat', 'callerArgs': arguments });
     };
 
@@ -435,8 +435,9 @@
 
     plugin.requery = function() {
       var data = this._(uid, 'data'), parentList = this.parentNodeList;
-      return data.mutable ? this.slice(0) :
-        this[data.callerName].apply(parentList && parentList.requery() || this, data.callerArgs || []);
+      return data.requeryable
+        ? this[data.callerName].apply(parentList && parentList.requery() || this, data.callerArgs || [])
+        : this.slice(0);
     };
 
     plugin.reverse = function() {
@@ -465,12 +466,13 @@
     };
 
     plugin.splice = function(start, deleteCount) {
-      var data = this._(uid, 'data');
+      var nodes, data = this._(uid, 'data');
       if (data.self != this) {
         throw new Error(MUTABLE_ERROR);
       }
-      data.mutable = true;
-      return doc.createNodeList(__splice.apply(data.self, arguments));
+      data.requeryable = false;
+      return createCompliantList(null, nodes = __splice.apply(data.self, arguments),
+        { 'callerName': 'createNodeList', 'callerArgs': [nodes] }, true);
     };
 
     plugin.toArray = function() {
@@ -484,8 +486,8 @@
           if (i in nodes && (query = nodes[i][method](selector)).length)
             concatList(result, query);
         }
-        return this.createNodeList(result,
-          { 'callerName': method, 'callerArgs': [selector] });
+        return createCompliantList(this, result,
+          { 'callerName': method, 'callerArgs': [selector] }, true);
       };
     });
 
@@ -517,7 +519,7 @@
             args[++j] = arg;
           }
         }
-        data.mutable = true;
+        data.requeryable = false;
         return __method.apply(this, args);
       };
     });
@@ -527,7 +529,7 @@
       return function() {
         var data = this._(uid, 'data');
         if (data.self != this) throw new Error(MUTABLE_ERROR);
-        data.mutable = true;
+        data.requeryable = false;
         return __method.call(this);
       };
     });
@@ -561,7 +563,7 @@
     }
     if (isFunction(plugin.map)) {
       plugin.map = function(callback, thisArg) {
-        return createNodeList.call(this, __map.call(this, callback, thisArg),
+        return createCompliantList(this, __map.call(this, callback, thisArg),
           { 'callerName': 'map', 'callerArgs': [callback, thisArg] });
       };
     }
@@ -591,30 +593,25 @@
     return postProcess(Array);
   },
 
-  createNodeList = function(nodes, data) {
-    var docIndex, index, length, sorted, temp, isNL = isNodeList(nodes),
-     result = InternalNodeList(), self = this, groups = [],
-     roots = [], i = -1, j = i, k = i;
-
-    if (arguments.length > 0 && (!nodes || typeof nodes != 'object' && !isNL)) {
-      throw new Error('Incorrect argument: ' + nodes + ' ' + (typeof nodes));
-    }
+  createCompliantList = function(parentList, nodes, data, skipOrdering) {
+    var docIndex, index, length, sorted, temp, result = InternalNodeList(),
+     groups = [], roots = [], i = -1, j = i, k = i;
 
     // setup data object
-    data || (data = { 'callerName': 'createNodeList', 'callerArgs': [nodes] });
+    data || (data = { });
 
-    if (isNL) {
-      // optimize for common use case
+    if (skipOrdering) {
+      // optimize for the DOM List use case
       fromNodeList(nodes, result);
-      data.mutable = false;
+      data.requeryable = true;
     }
     else if (nodes) {
       if (nodes.constructor == InternalNodeList) {
         temp = nodes._(uid, 'data');
-        data.mutable = temp.mutable;
+        data.requeryable = temp.requeryable;
         nodes = temp.self.toArray();
       } else {
-        data.mutable = true;
+        data.requeryable = false;
       }
       // support array-like objects
       length = nodes.length >>> 0;
@@ -644,13 +641,22 @@
       }
     }
 
-    if (this.constructor == InternalNodeList) {
-      result = adoptNodeList(this, result, data);
+    if (parentList && parentList.constructor == InternalNodeList) {
+      result = adoptNodeList(parentList, result, data);
     } else {
-      result._ = add_(result, data);
+      add_(result, data);
       result.parentNodeList = null;
     }
     return result;
+  },
+
+  createNodeList = function createNodeList(nodes) {
+    var skipOrdering = isNodeList(nodes);
+    if (arguments.length > 0 && (!nodes || typeof nodes != 'object' && !skipOrdering)) {
+      throw new Error('Incorrect argument: ' + nodes + ' ' + typeof nodes);
+    }
+    return createCompliantList(this, nodes,
+      { 'callerName': 'createNodeList', 'callerArgs': [nodes] }, skipOrdering);
   },
 
   createSandbox = function() {
