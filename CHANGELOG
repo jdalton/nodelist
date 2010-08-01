@@ -1,3 +1,7 @@
+* Remove checks for duplicate nodes from push() and unshift() because at that point the NodeList is not requeryable. [jddalton]
+
+* Ensure splice() allows only nodes to be added. [jddalton]
+
 * Ensure the InternalNodeList instance has a `_()` method before calling it in createCompliantList(). [jddalton]
 
 * Avoid exposing the `data` argument in the external createNodeList() method. [jddalton]

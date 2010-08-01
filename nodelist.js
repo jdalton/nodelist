@@ -118,6 +118,16 @@
     return contains(element, descendant);
   },
 
+  filterNonNodes = function(array, start) {
+    var result = [], length = array.length, i = --start || -1, j = i;
+    while (++i < length) {
+      if (isNode(array[i])) {
+        result[++j] = array[i];
+      }
+    }
+    return result;
+  },
+
   fromNodeList = function(nodes, result) {
     var i = -1;
     result || (result = []);
@@ -471,7 +481,8 @@
         throw new Error(MUTABLE_ERROR);
       }
       data.requeryable = false;
-      return createCompliantList(null, nodes = __splice.apply(data.self, arguments),
+      return createCompliantList(null, 
+        nodes = __splice.apply(data.self, filterNonNodes(arguments, 2)),
         { 'callerName': 'createNodeList', 'callerArgs': [nodes] }, true);
     };
 
@@ -506,21 +517,12 @@
     addPlugins(plugin, 'push,unshift', function(method) {
       var __method = plugin[method];
       return function() {
-        var arg, args = [], i = -1, j = i, data = this._(uid, 'data'),
-         length = arguments.length, self = data.self;
-
-        if (self != this) {
+        var data = this._(uid, 'data');
+        if (data.self != this) {
           throw new Error(MUTABLE_ERROR);
         }
-        // filter duplicates and non-nodes
-        while (++i < length) {
-          arg = arguments[i];
-          if (isNode(arg) && indexOf.call(self, arg) < 0) {
-            args[++j] = arg;
-          }
-        }
         data.requeryable = false;
-        return __method.apply(this, args);
+        return __method.apply(this, filterNonNodes(arguments));
       };
     });
 
