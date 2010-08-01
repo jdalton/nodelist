@@ -76,9 +76,11 @@
 
   adoptNodeList = function(parentList, child, data) {
     var pdata = parentList._(uid, 'data');
-    data.requeryable = pdata.requeryable;
-
     child._ || add_(child, data);
+
+    if (!pdata.snapshot) {
+      data.snapshot = false;
+    }
     if (pdata.self != parentList) {
       child = child.secure();
     }
@@ -126,13 +128,6 @@
       }
     }
     return result;
-  },
-
-  fromNodeList = function(nodes, result) {
-    var i = -1;
-    result || (result = []);
-    while (result[++i] = nodes[i]) { }
-    return result.length-- && result;
   },
 
   getRoot = function(element) {
@@ -419,11 +414,15 @@
     plugin.createNodeList = createNodeList;
 
     plugin.concat = function() {
-      var args = __slice.call(arguments, 0), length = args.length, i = -1;
+      var nodes, args = __slice.call(arguments, 0),
+       length = args.length, i = -1, j = i;
+
       while (++i < length) {
         if (isNodeList(args[i])) {
           // accept node lists
-          args[i] = fromNodeList(args[i]);
+          nodes = [];
+          while (nodes[++j] = args[i][j]) { }
+          args[i] = nodes.length-- && nodes;
         } else if (isNode(args[i])) {
           // accept nodes
           args[i] = args[i];
@@ -444,8 +443,23 @@
     };
 
     plugin.requery = function() {
-      var data = this._(uid, 'data'), parentList = this.parentNodeList;
-      return data.requeryable
+      var data = this._(uid, 'data'), length = this.length,
+       parentList = this.parentNodeList, snapshot = data.snapshot;
+
+      // Inspect list to see if it matches its origin snapshot.
+      // If it fails to match we know it's been modified.
+      if (snapshot) {
+        if (snapshot.length != length) {
+          data.snapshot = false;
+        } else {
+          while (length--) {
+            if (this[length] != snapshot[length]) {
+              data.snapshot = false; break;
+            }
+          }
+        }
+      }
+      return data.snapshot
         ? this[data.callerName].apply(parentList && parentList.requery() || this, data.callerArgs || [])
         : this.slice(0);
     };
@@ -480,7 +494,7 @@
       if (data.self != this) {
         throw new Error(MUTABLE_ERROR);
       }
-      data.requeryable = false;
+      data.snapshot = false;
       return createCompliantList(null, 
         nodes = __splice.apply(data.self, filterNonNodes(arguments, 2)),
         { 'callerName': 'createNodeList', 'callerArgs': [nodes] }, true);
@@ -521,7 +535,7 @@
         if (data.self != this) {
           throw new Error(MUTABLE_ERROR);
         }
-        data.requeryable = false;
+        data.snapshot = false;
         return __method.apply(this, filterNonNodes(arguments));
       };
     });
@@ -531,7 +545,7 @@
       return function() {
         var data = this._(uid, 'data');
         if (data.self != this) throw new Error(MUTABLE_ERROR);
-        data.requeryable = false;
+        data.snapshot = false;
         return __method.call(this);
       };
     });
@@ -604,17 +618,16 @@
 
     if (skipOrdering) {
       // optimize for the DOM List use case
-      fromNodeList(nodes, result);
-      data.requeryable = true;
+      // the `roots` array is unused in this fork so we can borrow it to store the snapshot
+      while (result[++i] = roots[i] = nodes[i]) { }
+      result.length = --roots.length;
+      data.snapshot = roots;
     }
     else if (nodes) {
-      if (nodes.constructor == InternalNodeList && nodes._) {
-        temp = nodes._(uid, 'data');
-        data.requeryable = temp.requeryable;
-        nodes = temp.self.toArray();
-      } else {
-        data.requeryable = false;
+      if (nodes.constructor == InternalNodeList) {
+        nodes = nodes.toArray();
       }
+
       // support array-like objects
       length = nodes.length >>> 0;
 

@@ -53,10 +53,8 @@ Because the output is a **real** array you don't need to worry about converting 
 with Function#apply or other methods that expect an array.
 
 ### Editable
-Feel free to use the `pop()`, `push()`, `shift()`, `splice()`, and `unshift()` methods.
-Keep in mind that doing so **will** break the link between the original DOM List and `requery()`.
-
-*(I have not added getter/setter checks for length property changes)*
+Feel free to use `pop()`, `push()`, `shift()`, `splice()`, `unshift()`, change the `length` property, and add values
+by index to the NodeList decorator. Keep in mind that doing so **will** break the link between the original DOM List and `requery()`.
 
 ### Secure
 The secured NodeList decorator is **not** exposed on an external property.
