@@ -711,12 +711,12 @@
         // prevents a memory leak in IE
         // IE doesn't support bfcache so we don't have to worry about breaking it.
         if (isHostType(window, 'attachEvent')) {
-          window.attachEvent('onunload', function() { cache.length = 0 });
+          attachEvent('onunload', function() { cache.length = 0 });
         }
         return xdoc.parentWindow;
 
       case IFRAME_MODE:
-        key = '/* fusebox_iframe_cache_fix */';
+        key = '/* fuse_iframe_cache_fix */';
         name = uid + counter++;
         parentNode = doc.body || docEl;
 
@@ -732,8 +732,8 @@
           // when served from the file:// protocol as well
           if ('MozOpacity' in docEl.style &&
               isHostType(window, 'sessionStorage') &&
-              !window.sessionStorage[key]) {
-            window.sessionStorage[key] = 1;
+              !sessionStorage[key]) {
+            sessionStorage[key] = 1;
             throw new Error;
           }
 
@@ -749,9 +749,9 @@
             // its content swapped with our iframe. Though the content is swapped,
             // the iframe will persist its `src` property so we check if our
             // iframe has a src property and load it if found.
-            '<script>var g=this,c=function(s){' +
-            '(s=g.frameElement.src)&&g.location.replace(s);' +
-            'if(g.parent.document.readyState!="complete"){g.setTimeout(c,10)}};' +
+            '<script>var c=function(s){' +
+            '(s=frameElement.src)&&location.replace(s);' +
+            'if(parent.document.readyState!="complete"){setTimeout(c,10)}};' +
             'c()<\/script>');
 
           xdoc.close();
@@ -782,14 +782,14 @@
   if (typeof doc.readyState != 'string' && isHostType(doc, 'addEventListener')) {
     doc.readyState = 'loading';
     doc.addEventListener('DOMContentLoaded', function() { doc.readyState = 'interactive' }, true);
-    window.addEventListener('load', function() { doc.readyState = 'complete' }, true);
+    addEventListener('load', function() { doc.readyState = 'complete' }, true);
   }
   // The htmlfile ActiveX object is supported by IE4+ and avoids https mixed
   // content warnings in IE6. It is also used as a workaround for access denied errors
   // thrown when using iframes to create sandboxes after the document.domain is
   // set (Opera 9.25 is out of luck here).
   if (HAS_ACTIVEX && !isHostType(window, 'XMLHttpRequest') &&
-        window.location && window.location.protocol == 'https:') {
+        window.location && location.protocol == 'https:') {
     setMode(ACTIVEX_MODE);
   }
   // Iframes are the fastest and prefered technique
